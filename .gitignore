@@ -1,0 +1,7 @@
+/.pc
+/build
+/debian/python-geohash*debhelper*
+/debian/*.substvars
+/debian/*stamp*
+/debian/files
+/debian/python-geohash/
