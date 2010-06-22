@@ -3,7 +3,7 @@ Section: python
 Priority: extra
 Maintainer: SimpleGeo Nerds <nerds@simplegeo.com>
 Uploaders: Ian Eure <ian@simplegeo.com>
-Build-Depends: debhelper (>= 7), cdbs (>= 0.4.59), python (>= 2.6), python-central (>= 0.6.11)
+Build-Depends: debhelper (>= 7), cdbs (>= 0.4.59), python (>= 2.6), python-central (>= 0.6.11), python-dev
 Standards-Version: 3.8.4
 Homepage: http://github.com/simplegeo/python-geohash
 XS-Python-Version: 2.6
