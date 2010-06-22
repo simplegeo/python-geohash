@@ -1,3 +1,12 @@
+python-geohash (0.6-sg3) lucid; urgency=low
+
+  [ Ian Eure ]
+  * Build-depend on python-dev, otherwise the C extension can’t build.
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 22 Jun 2010 17:12:07 +0000
+
 python-geohash (0.6-sg2) lucid; urgency=low
 
   * UNRELEASED
