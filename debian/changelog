@@ -1,3 +1,15 @@
+python-geohash (0.6-sg4) lucid; urgency=low
+
+  [ Wade Simmons ]
+  * disable compilation and use of the C library to fix geohash.encode
+    We can enable it again once http://code.google.com/p/python-
+    geohash/issues/detail?id=5 is fixed (although I am fine with leaving
+    it disabled, as it has been very buggy)
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Thu, 26 Aug 2010 20:02:11 +0000
+
 python-geohash (0.6-sg3) lucid; urgency=low
 
   [ Ian Eure ]
