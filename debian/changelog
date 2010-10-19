@@ -1,3 +1,9 @@
+python-geohash (0.7-sg6) lucid; urgency=low
+
+  * UNRELEASED
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 19 Oct 2010 18:08:53 +0000
+
 python-geohash (0.7-sg0) unstable; urgency=low
 
   * New upstream version.
