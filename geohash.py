@@ -2,6 +2,11 @@
 """
 Copyright (C) 2009 Hiroaki Kawai <kawai@iij.ad.jp>
 """
+try:
+	import _geohash
+except ImportError,e:
+	_geohash = None
+
 __all__ = ['encode','decode','decode_exactly','bbox', 'neighbors', 'expand']
 
 _base32 = '0123456789bcdefghjkmnpqrstuvwxyz'
@@ -32,36 +37,49 @@ def _encode_i2c(lat,lon,lat_length,lon_length):
 		a = lat
 		b = lon
 	
+	boost = (0,1,4,5,16,17,20,21)
 	ret = ''
-	while precision>0:
-		c = ((a&4)<<2) + ((b&2)<<2) + ((a&2)<<1) + ((b&1)<<1) + (a&1)
-		ret += _base32[c]
+	for i in range(precision):
+		ret+=_base32[(boost[a&7]+(boost[b&3]<<1))&0x1F]
 		t = a>>3
 		a = b>>2
 		b = t
-		precision-=1
 	
 	return ret[::-1]
 
 def encode(latitude, longitude, precision=12):
-	if latitude > 90.0 or latitude < -90.0:
+	if latitude >= 90.0 or latitude < -90.0:
 		raise Exception("invalid latitude.")
 	while longitude < -180.0:
 		longitude += 360.0
 	while longitude >= 180.0:
 		longitude -= 360.0
 	
-	lat = (latitude+90.0)/180.0
-	lon = (longitude+180.0)/360.0
+	if _geohash:
+		basecode=_geohash.encode(latitude,longitude)
+		if len(basecode)>precision:
+			return basecode[0:precision]
+		return basecode+'0'*(precision-len(basecode))
 	
-	lat_length=lon_length=precision*5/2
-	if precision%2==1:
+	lat = latitude/180.0
+	lon = longitude/360.0
+	
+	xprecision=precision+1
+	lat_length=lon_length=xprecision*5/2
+	if xprecision%2==1:
 		lon_length+=1
 	
-	lat = int((1<<lat_length)*lat)
-	lon = int((1<<lon_length)*lon)
+	if lat>0:
+		lat = int((1<<lat_length)*lat)+(1<<(lat_length-1))
+	else:
+		lat = (1<<lat_length-1)-int((1<<lat_length)*(-lat))
 	
-	return _encode_i2c(lat,lon,lat_length,lon_length)
+	if lon>0:
+		lon = int((1<<lon_length)*lon)+(1<<(lon_length-1))
+	else:
+		lon = (1<<lon_length-1)-int((1<<lon_length)*(-lon))
+	
+	return _encode_i2c(lat,lon,lat_length,lon_length)[:precision]
 
 def _decode_c2i(hashcode):
 	lon = 0
@@ -97,6 +115,19 @@ def _decode_c2i(hashcode):
 	return (lat,lon,lat_length,lon_length)
 
 def decode(hashcode, delta=False):
+	'''
+	decode a hashcode and get center coordinate, and distance between center and outer border
+	'''
+	if _geohash:
+		(lat,lon,lat_bits,lon_bits) = _geohash.decode(hashcode)
+		latitude_delta = 180.0/(2<<lat_bits)
+		longitude_delta = 360.0/(2<<lon_bits)
+		latitude = lat + latitude_delta
+		longitude = lon + longitude_delta
+		if delta:
+			return latitude,longitude,latitude_delta,longitude_delta
+		return latitude,longitude
+	
 	(lat,lon,lat_length,lon_length) = _decode_c2i(hashcode)
 	
 	lat = (lat<<1) + 1
@@ -104,8 +135,8 @@ def decode(hashcode, delta=False):
 	lat_length += 1
 	lon_length += 1
 	
-	latitude  = 180.0*lat/(1<<lat_length) - 90.0
-	longitude = 360.0*lon/(1<<lon_length) - 180.0
+	latitude  = 180.0*(lat-(1<<(lat_length-1)))/(1<<lat_length)
+	longitude = 360.0*(lon-(1<<(lon_length-1)))/(1<<lon_length)
 	if delta:
 		latitude_delta  = 180.0/(1<<lat_length)
 		longitude_delta = 360.0/(1<<lon_length)
@@ -119,16 +150,36 @@ def decode_exactly(hashcode):
 ## hashcode operations below
 
 def bbox(hashcode):
-	(lat,lon,lat_length,lon_length) = _decode_c2i(hashcode)
+	'''
+	decode a hashcode and get north, south, east and west border.
+	'''
+	if _geohash:
+		(lat,lon,lat_bits,lon_bits) = _geohash.decode(hashcode)
+		latitude_delta = 180.0/(1<<lat_bits)
+		longitude_delta = 360.0/(1<<lon_bits)
+		return {'s':lat,'w':lon,'n':lat+latitude_delta,'e':lon+longitude_delta}
 	
+	(lat,lon,lat_length,lon_length) = _decode_c2i(hashcode)
 	ret={}
-	ret['n'] = 180.0*(lat+1)/(1<<lat_length) - 90.0
-	ret['s'] = 180.0*lat/(1<<lat_length) - 90.0
-	ret['e'] = 360.0*(lon+1)/(1<<lon_length) - 180.0
-	ret['w'] = 360.0*lon/(1<<lon_length) - 180.0
+	if lat_length:
+		ret['n'] = 180.0*(lat+1-(1<<(lat_length-1)))/(1<<lat_length)
+		ret['s'] = 180.0*(lat-(1<<(lat_length-1)))/(1<<lat_length)
+	else: # can't calculate the half with bit shifts (negative shift)
+		ret['n'] = 90.0
+		ret['s'] = -90.0
+	
+	if lon_length:
+		ret['e'] = 360.0*(lon+1-(1<<(lon_length-1)))/(1<<lon_length)
+		ret['w'] = 360.0*(lon-(1<<(lon_length-1)))/(1<<lon_length)
+	else: # can't calculate the half with bit shifts (negative shift)
+		ret['e'] = 180.0
+		ret['w'] = -180.0
+	
 	return ret
 
 def neighbors(hashcode):
+	if _geohash and len(hashcode)<25:
+		return _geohash.neighbors(hashcode)
 	(lat,lon,lat_length,lon_length) = _decode_c2i(hashcode)
 	ret = []
 	tlat = lat
