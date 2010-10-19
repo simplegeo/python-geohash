@@ -1,3 +1,9 @@
+python-geohash (0.7-sg0) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Wade Simmons <wade@simplegeo.com>  Tue, 19 Oct 2010 12:07:13 -0600
+
 python-geohash (0.6-sg4) lucid; urgency=low
 
   [ Wade Simmons ]
