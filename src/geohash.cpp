@@ -84,7 +84,8 @@ static PyObject *py_geohash_encode(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "dd", &latitude, &longitude)) return NULL;
 
     if ((ret = geohash_encode(latitude, longitude, hashcode, 28)) != GEOHASH_OK) {
-        if (ret == GEOHASH_NOTSUPPORTED) PyErr_SetString(PyExc_EnvironmentError, "unknown endian");
+        if (ret == GEOHASH_NOTSUPPORTED)
+            PyErr_SetString(PyExc_EnvironmentError, "unknown endian");
         return NULL;
     }
     return Py_BuildValue("s", hashcode);
@@ -94,17 +95,19 @@ static PyObject *py_geohash_decode(PyObject *self, PyObject *args) {
     double latitude;
     double longitude;
     char *hashcode;
-    int codelen = 0;
-    int ret = GEOHASH_OK;
 
     if (!PyArg_ParseTuple(args, "s", &hashcode)) return NULL;
 
-    codelen = strlen(hashcode);
-    if ((ret = geohash_decode(hashcode, codelen, &latitude, &longitude)) != GEOHASH_OK) {
+    size_t codelen = strlen(hashcode);
+    if (geohash_decode(hashcode, codelen, &latitude, &longitude) != GEOHASH_OK) {
         PyErr_SetString(PyExc_ValueError, "geohash code is [0123456789bcdefghjkmnpqrstuvwxyz]+");
         return NULL;
     }
-    return Py_BuildValue("(ddii)", latitude, longitude, codelen / 2 * 5 + codelen % 2 * 2, codelen / 2 * 5 + codelen % 2 * 3);
+    return Py_BuildValue("(ddii)",
+                         latitude,
+                         longitude,
+                         codelen / 2 * 5 + codelen % 2 * 2,
+                         codelen / 2 * 5 + codelen % 2 * 3);
 }
 
 static PyObject *py_geohash_neighbors(PyObject *self, PyObject *args) {
@@ -131,12 +134,12 @@ static PyObject *py_geohash_neighbors(PyObject *self, PyObject *args) {
     char *hashcode;
     if (!PyArg_ParseTuple(args, "s", &hashcode)) return NULL;
 
-    int length = strlen(hashcode);
+    size_t length = strlen(hashcode);
     if (length > 24) {
         length = 24;    // round if the hashcode is too long (over 64bit)
     }
     lat = lon = 0;
-    int cshift = 0;
+    size_t cshift = 0;
     while (cshift < length) {
         unsigned char o1 = mapA[(unsigned char)hashcode[cshift]];
         if (o1 == '@') {
@@ -168,7 +171,7 @@ static PyObject *py_geohash_neighbors(PyObject *self, PyObject *args) {
     } else if (lat + 1 == (UINT64_C(1) << (length / 2 * 5 + length % 2 * 2))) {
         al = -1; au = 1;
     }
-    int blen = length + 1; // block length
+    long blen = length + 1; // block length
     int aoff = 0;
     int a, o;
     for (a = al; a < au; a++) {
@@ -177,7 +180,7 @@ static PyObject *py_geohash_neighbors(PyObject *self, PyObject *args) {
             uint64_t ta = lat + a;
             uint64_t to = lon + o;
             buffer[blen * aoff + length] = '\0';
-            int cpos = length - 1;
+            long cpos = length - 1;
             while (cpos >= 0) {
                 unsigned char z;
                 if (cpos % 2 == 0) {
@@ -216,6 +219,7 @@ static PyMethodDef GeohashMethods[] = {
     {NULL, NULL, 0, NULL}
 };
 
+#ifdef IS_PY3K
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
     "_geohash",
@@ -227,6 +231,7 @@ static struct PyModuleDef moduledef = {
     NULL,
     NULL
 };
+#endif
 
 PyMODINIT_FUNC init_geohash(void) {
 #ifdef IS_PY3K
